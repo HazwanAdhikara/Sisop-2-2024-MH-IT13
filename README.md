@@ -63,7 +63,33 @@ Struktur Repository Seperti Berikut:
 ### **`Soal 4`**
 `>Rayyan`
 ### > Isi Soal
+Salomo memiliki passion yang sangat dalam di bidang sistem operasi. Saat ini, dia ingin mengotomasi kegiatan-kegiatan yang ia lakukan agar dapat bekerja secara efisien. Bantulah Salomo untuk membuat program yang dapat mengotomasi kegiatan dia!
+(NB: Soal di uji coba dan berhasil di sistem yang menggunakan MacOS dan linux yang menggunakan dual boot dan VM. Untuk teman-teman yang menggunakan WSL bisa mengerjakan soal yang lain ya)
++ Salomo ingin dapat membuka berbagai macam aplikasi dengan banyak jendela aplikasi dalam satu command. Namai file program tersebut `setup.c`
++ Program dapat membuka berbagai macam aplikasi dan banyak jendela aplikasi sekaligus (bisa membuka 1 atau lebih aplikasi dengan 1 atau lebih window (kecuali aplikasi yang tidak bisa dibuka dengan banyak window seperti discord)) dengan menjalankan:
+  - `./setup -o <app1> <num1> <app2> <num2>.....<appN> <numN>`
+  - Contoh penggunaannya adalah sebagai berikut:
+   - `./setup -o firefox 2 wireshark 2`
+     - Program akan membuka 2 jendela aplikasi firefox dan 2 jendela aplikasi wireshark.
++ Program juga dapat membuka aplikasi dengan menggunakan file konfigurasi dengan menggunakan `./setup -f file.conf`
+  - Format file konfigurasi dibebaskan, namun pastikan dapat menjalankan fitur dari poin 2.
+  - Contoh isi file.conf:
+    1. Firefox 2
+    2. Wireshark 3
+  - Ketika menjalankan command contoh, program akan membuka 2 jendela aplikasi firefox dan 3 jendela aplikasi wireshark.
++ Program dapat mematikan semua aplikasi yg dijalankan oleh program tersebut dengan: 
+  - `./setup -k`
++ Program juga dapat mematikan aplikasi yang dijalankan sesuai dengan file konfigurasi. 
+  - Contohnya: 
+    + `./setup -k file.conf `
+  - Command ini hanya mematikan aplikasi yang dijalankan dengan 
+    + `./setup -f file.conf`
+
+
 #### > Penyelesaian
+### **`setup.c`**
+```bash
+
 #### > Penjelasan
 #### > Dokumentasi
 #### > Revisi
