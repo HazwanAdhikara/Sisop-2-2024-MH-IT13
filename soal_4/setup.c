@@ -1,110 +1,126 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #define MAX_APPS 100
-#define MAX_NAME_LENGTH 50
 
-struct App {
-    char name[MAX_NAME_LENGTH];
-    int numWindows;
-};
+pid_t process_ids[MAX_APPS];
+int process_ids_index = 0;
 
-void openApps(struct App apps[], int numApps);
-void saveDataToFile(const struct App apps[], int numApps);
-void readConfigFile(const char *filename, struct App apps[], int *numApps);
-void killAllApps(struct App apps[], int numApps);
-
-int main(int argc, char *argv[]) {
-    struct App apps[MAX_APPS];
-    int numApps = 0;
-
-    if (argc < 2) {
-        printf("Usage: %s -o <app1> <num1> <app2> <num2> ... <appN> <numN>\n", argv[0]);
-        printf("       %s -f <config_file>\n", argv[0]);
-        printf("       %s -k\n", argv[0]);
-        return 1;
+void start_applications(int argc, char *argv[]) {
+    FILE *pid_file = fopen("running_processes.txt", "w");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
     }
 
-    if (strcmp(argv[1], "-o") == 0) {
-        if (argc < 4 || argc % 2 != 0) {
-            printf("Invalid number of arguments\n");
-            return 1;
-        }
-        numApps = (argc - 2) / 2;
-        for (int i = 0; i < numApps; i++) {
-            strcpy(apps[i].name, argv[i * 2 + 2]);
-            apps[i].numWindows = atoi(argv[i * 2 + 3]);
-        }
-        openApps(apps, numApps);
-        saveDataToFile(apps, numApps);
-    } else if (strcmp(argv[1], "-f") == 0 && argc == 3) {
-        readConfigFile(argv[2], apps, &numApps);
-    } else if (strcmp(argv[1], "-k") == 0 && argc == 2) {
-        killAllApps(apps, numApps);
-    } else {
-        printf("Invalid option\n");
-    }
+    for (int i = 2; i < argc; i += 2) {
+        char *app_name = argv[i];
+        int num_instances = atoi(argv[i + 1]);
 
-    return 0;
-}
-
-void openApps(struct App apps[], int numApps) {
-    for (int i = 0; i < numApps; i++) {
-        for (int j = 0; j < apps[i].numWindows; j++) {
+        for (int j = 0; j < num_instances; j++) {
             pid_t pid = fork();
             if (pid == 0) {
-                execlp(apps[i].name, apps[i].name, NULL);
+                char *args[] = {app_name, NULL};
+                execvp(args[0], args);
                 exit(0);
+            } else {
+                fprintf(pid_file, "%d\n", pid);
             }
         }
     }
+
+    fclose(pid_file);
 }
 
-void saveDataToFile(const struct App apps[], int numApps) {
-    FILE *file = fopen("app_data.txt", "w");
-    if (file == NULL) {
-        printf("Failed to open file\n");
+void stop_applications() {
+    FILE *pid_file = fopen("running_processes.txt", "r");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
         return;
     }
-    fprintf(file, "%d\n", numApps);
-    for (int i = 0; i < numApps; i++) {
-        fprintf(file, "%s %d\n", apps[i].name, apps[i].numWindows);
+
+    pid_t pid;
+    while (fscanf(pid_file, "%d", &pid) != EOF) {
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
     }
-    fclose(file);
+
+    fclose(pid_file);
 }
 
-void readConfigFile(const char *filename, struct App apps[], int *numApps) {
+void start_applications_from_file(char *filename) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        printf("Failed to open file\n");
+        printf("Failed to open the file %s\n", filename);
         return;
     }
 
-    while (fscanf(file, "%s %d", apps[*numApps].name, &apps[*numApps].numWindows) != EOF) {
-        (*numApps)++;
+    FILE *pid_file = fopen("running_processes.txt", "w");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
+    }
+
+    char app_name[100];
+    int num_instances;
+    while (fscanf(file, "%s %d", app_name, &num_instances) != EOF) {
+        for (int j = 0; j < num_instances; j++) {
+            pid_t pid = fork();
+            if (pid == 0) {
+                char *args[] = {app_name, NULL};
+                execvp(args[0], args);
+                exit(0);
+            } else {
+                fprintf(pid_file, "%d\n", pid);
+            }
+        }
     }
 
     fclose(file);
-
-    openApps(apps, *numApps);
+    fclose(pid_file);
 }
 
-void killAllApps(struct App apps[], int numApps) {
-    for (int i = 0; i < numApps; i++) {
-        pid_t pid = fork();
-        if (pid == 0) {
-            execlp("pkill", "pkill", "-f", apps[i].name, NULL);
-            exit(0);
-        } else if (pid < 0) {
-            printf("Failed to fork\n");
-        } else {
-            waitpid(pid, NULL, 0); // Menunggu proses anak selesai
-        }
+void stop_applications_from_file(char *filename) {
+    FILE *pid_file = fopen("running_processes.txt", "r");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
     }
+
+    pid_t pid;
+    while (fscanf(pid_file, "%d", &pid) != EOF) {
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+    }
+
+    fclose(pid_file);
 }
 
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s -s <app1> <num1> <app2> <num2> ... <appN> <numN>\n", argv[0]);
+        return 1;
+    }
+
+    if (strcmp(argv[1], "-s") == 0 || strcmp(argv[1], "-o") == 0) {
+    	start_applications(argc, argv);
+    } else if (strcmp(argv[1], "-f") == 0 && argc == 3) {
+    	start_applications_from_file(argv[2]);
+    } else if (strcmp(argv[1], "-k") == 0) {
+    if (argc == 3) {
+        stop_applications_from_file(argv[2]);
+    } else {
+        stop_applications();
+    }
+} else {
+    printf("Invalid option\n");
+}
+
+
+    return 0;
+}
