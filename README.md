@@ -217,6 +217,111 @@ int main(int argc, char *argv[]) {
 }
 ```
 #### > Penjelasan
+
+### setup.c
+
+1. Fungsi untuk memulai aplikasi berdasarkan argumen yang diberikan saat program dijalankan
+```bash
+void start_applications(int argc, char *argv[]) {
+    FILE *pid_file = fopen("running_processes.txt", "w");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
+    }
+
+    for (int i = 2; i < argc; i += 2) {
+        char *app_name = argv[i];
+        int num_instances = atoi(argv[i + 1]);
+
+        for (int j = 0; j < num_instances; j++) {
+            pid_t pid = fork();
+            if (pid == 0) {
+                char *args[] = {app_name, NULL};
+                execvp(args[0], args);
+                exit(0);
+            } else {
+                fprintf(pid_file, "%d\n", pid);
+            }
+        }
+    }
+
+    fclose(pid_file);
+}
+```
+
+2. Fungsi untuk menghentikan semua aplikasi yang sedang berjalan
+```bash
+void stop_applications() {
+    FILE *pid_file = fopen("running_processes.txt", "r");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
+    }
+
+    pid_t pid;
+    while (fscanf(pid_file, "%d", &pid) != EOF) {
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+    }
+
+    fclose(pid_file);
+}
+```
+
+3. Fungsi untuk memulai aplikasi berdasarkan informasi yang terdapat dalam file yang diberikan
+```bash
+void start_applications_from_file(char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Failed to open the file %s\n", filename);
+        return;
+    }
+
+    FILE *pid_file = fopen("running_processes.txt", "w");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
+    }
+
+    char app_name[100];
+    int num_instances;
+    while (fscanf(file, "%s %d", app_name, &num_instances) != EOF) {
+        for (int j = 0; j < num_instances; j++) {
+            pid_t pid = fork();
+            if (pid == 0) {
+                char *args[] = {app_name, NULL};
+                execvp(args[0], args);
+                exit(0);
+            } else {
+                fprintf(pid_file, "%d\n", pid);
+            }
+        }
+    }
+
+    fclose(file);
+    fclose(pid_file);
+}
+```
+
+4. Fungsi untuk menghentikan aplikasi berdasarkan informasi yang terdapat dalam file yang diberikan
+```bash
+void stop_applications_from_file(char *filename) {
+    FILE *pid_file = fopen("running_processes.txt", "r");
+    if (pid_file == NULL) {
+        printf("Failed to open the PID file\n");
+        return;
+    }
+
+    pid_t pid;
+    while (fscanf(pid_file, "%d", &pid) != EOF) {
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+    }
+
+    fclose(pid_file);
+}
+```
+
 #### > Dokumentasi
 #### > Revisi
 
