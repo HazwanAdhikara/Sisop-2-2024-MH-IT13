@@ -268,7 +268,7 @@ void stop_applications() {
 }
 ```
 
-3. Fungsi untuk memulai aplikasi berdasarkan informasi yang terdapat dalam file yang diberikan
+3. Fungsi untuk memulai aplikasi berdasarkan informasi yang terdapat dalam file configurasi yang diberikan
 ```bash
 void start_applications_from_file(char *filename) {
     FILE *file = fopen(filename, "r");
@@ -303,7 +303,7 @@ void start_applications_from_file(char *filename) {
 }
 ```
 
-4. Fungsi untuk menghentikan aplikasi berdasarkan informasi yang terdapat dalam file yang diberikan
+4. Fungsi untuk menghentikan aplikasi berdasarkan informasi yang terdapat dalam file configurasi yang diberikan
 ```bash
 void stop_applications_from_file(char *filename) {
     FILE *pid_file = fopen("running_processes.txt", "r");
@@ -322,8 +322,34 @@ void stop_applications_from_file(char *filename) {
 }
 ```
 
-#### > Dokumentasi
-#### > Revisi
+5. Fungsi ini melakukan pengecekan terhadap argumen yang diberikan saat menjalankan program.
+```bash
+int main(int argc, char *argv[]) {
+    // Memeriksa jumlah argumen yang diberikan
+    if (argc < 2) {
+        printf("Usage: %s -s <app1> <num1> <app2> <num2> ... <appN> <numN>\n", argv[0]);
+        return 1;
+    }
+
+    // Memeriksa opsi yang diberikan saat menjalankan program
+    if (strcmp(argv[1], "-s") == 0 || strcmp(argv[1], "-o") == 0) {
+    	start_applications(argc, argv);
+    } else if (strcmp(argv[1], "-f") == 0 && argc == 3) {
+    	start_applications_from_file(argv[2]);
+    } else if (strcmp(argv[1], "-k") == 0) {
+    if (argc == 3) {
+        stop_applications_from_file(argv[2]);
+    } else {
+        stop_applications();
+    }
+} else {
+    printf("Invalid option\n");
+}
+
+    return 0;
+}
+```
+
 
 
 
