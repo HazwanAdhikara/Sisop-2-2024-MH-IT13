@@ -71,30 +71,30 @@ A. Atasannya meminta agar program tersebut dapat berjalan secara daemon dan dapa
 B. Setelah ditelusuri, ternyata hanya 6 file teratas yang nama filenya tidak dienkripsi. Oleh karena itu, bantulah Paul untuk melakukan dekripsi terhadap nama file ke-7 hingga terakhir menggunakan algoritma `ROT19`.
 
 C. Setelah dekripsi selesai, akan terlihat bahwa setiap file memuat salah satu dari kode berikut: **r3N4mE**, **d3Let3**, dan **m0V3**. Untuk setiap file dengan nama yang memuat kode **d3Let3**, hapus file tersebut. Sementara itu, untuk setiap file dengan nama yang memuat kode **r3N4mE**, lakukan hal berikut:
-i. Jika ekstensi file adalah “.ts”, rename filenya menjadi “helper.ts”
-ii. Jika ekstensi file adalah “.py”, rename filenya menjadi “calculator.py”
-iii. Jika ekstensi file adalah “.go”, rename filenya menjadi “server.go”
-iv. Jika file tidak memuat salah satu dari ekstensi diatas, rename filenya menjadi “renamed.file”
+	i. Jika ekstensi file adalah “.ts”, rename filenya menjadi “helper.ts”
+	ii. Jika ekstensi file adalah “.py”, rename filenya menjadi “calculator.py”
+	iii. Jika ekstensi file adalah “.go”, rename filenya menjadi “server.go”
+	iv. Jika file tidak memuat salah satu dari ekstensi diatas, rename filenya menjadi “renamed.file”
 
 D. Atasan Paul juga meminta agar program ini dapat membackup dan merestore file. Oleh karena itu, bantulah Paul untuk membuat program ini menjadi 3 mode, yaitu:
-i. _default_: program berjalan seperti biasa untuk me-rename dan menghapus file. Mode ini dieksekusi ketika program dijalankan tanpa argumen tambahan, yaitu dengan command ./management saja
-ii. _backup_: program memindahkan file dengan kode m0V3 ke sebuah folder bernama “backup”
-iii. _restore_: program mengembalikan file dengan kode m0V3 ke folder sebelum file tersebut dipindahkan
-iv. Contoh penggunaan: ./management -m backup
+	i. _default_: program berjalan seperti biasa untuk me-rename dan menghapus file. Mode ini dieksekusi ketika program dijalankan tanpa argumen tambahan, yaitu dengan command ./management saja
+	ii. _backup_: program memindahkan file dengan kode m0V3 ke sebuah folder bernama “backup”
+	iii. _restore_: program mengembalikan file dengan kode m0V3 ke folder sebelum file tersebut dipindahkan
+	iv. Contoh penggunaan: ./management -m backup
 
 E. Terkadang, Paul perlu mengganti mode dari program ini tanpa menghentikannya terlebih dahulu. Oleh karena itu, bantulan Paul untuk mengintegrasikan kemampuan untuk mengganti mode ini dengan mengirim sinyal ke daemon, dengan ketentuan:
-i. SIGRTMIN untuk mode _default_
-ii. SIGUSR1 untuk mode _backup_
-iii. SIGUSR2 untuk mode _restore_
-iv. Contoh penggunaan: kill -SIGUSR2 <pid_program>
+	i. SIGRTMIN untuk mode _default_
+	ii. SIGUSR1 untuk mode _backup_
+	iii. SIGUSR2 untuk mode _restore_
+	iv. Contoh penggunaan: kill -SIGUSR2 <pid_program>
 
 F. Program yang telah dibuat ini tidak mungkin akan dijalankan secara terus-menerus karena akan membebani sistem. Maka dari itu, bantulah Paul untuk membuat program ini dapat dimatikan dengan aman dan efisien
 
 G. Terakhir, program ini harus berjalan setiap detik dan mampu mencatat setiap peristiwa yang terjadi ke dalam file .log yang bernama “history.log” dengan ketentuan:
-i. Format: [nama_user][HH:MM:SS] - <nama*file> - <action>
-ii. nama_user adalah username yang melakukan action terhadap file
-iii. Format action untuk setiap kode: 1. kode \_r3N4mE*: Successfully renamed. 2. kode _d3Let3_: Successfully deleted. 3. mode _backup_: Successfully moved to backup. 4. mode _restore_: Successfully restored from backup.
-iv. Contoh pesan log: 1. [paul][00:00:00] - r3N4mE.ts - Successfully renamed. 2. [paul][00:00:00] - m0V3.xk1 - Successfully restored from backup.
+	i. Format: [nama_user][HH:MM:SS] - <nama*file> - <action>
+	ii. nama_user adalah username yang melakukan action terhadap file
+	iii. Format action untuk setiap kode: 1. kode \_r3N4mE*: Successfully renamed. 2. kode _d3Let3_: Successfully deleted. 3. mode _backup_: Successfully moved to backup. 4. mode _restore_: Successfully restored from backup.
+	iv. Contoh pesan log: 1. [paul][00:00:00] - r3N4mE.ts - Successfully renamed. 2. [paul][00:00:00] - m0V3.xk1 - Successfully restored from backup.
 
 H. Berikut adalah struktur folder untuk pengerjaan nomor 2:
 soal_2/
