@@ -195,10 +195,66 @@ int main(int argc, char *argv[]) {
 
 #### > Penjelasan
 
-#### > Dokumentasi
+** 1. Header Inclusion **
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <time.h>
+```
+Header inclusion mengimpor pustaka standar yang diperlukan untuk operasi I/O, manipulasi string, manajemen proses, waktu, dan lain-lain.
+
+** 2. Macro Definitions **
+```bash
+#define MAX_PATH_LENGTH 256
+#define MAX_BUFFER_SIZE 1024
+```
+Definisi makro yang menentukan panjang maksimum path file dan ukuran maksimum buffer.
+
+** 3. Function replaceString **
+```bash
+void replaceString(char *str, const char *old, const char *new) {
+    // ...
+}
+```
+Fungsi ini digunakan untuk mengganti semua kemunculan string old dalam string str dengan string new.
+
+** 4. Function logReplacement **
+```bash
+void logReplacement(const char *filePath) {
+    // ...
+}
+```
+Fungsi ini mencatat penggantian string yang dilakukan ke dalam file log dengan mencatat timestamp dan path file yang diubah.
+
+** 5. Function runDaemon **
+```bash
+void runDaemon(const char *folderPath) {
+    // ...
+}
+```
+Fungsi utama program yang menjalankan daemon. Proses utama daemon dijalankan di dalam fungsi ini.
+
+** 6. Function main **
+```bash
+int main(int argc, char *argv[]) {
+    // ...
+}
+```
+Fungsi utama program. Menerima argumen berupa path folder tempat file contoh.txt berada. Jika jumlah argumen tidak sesuai, program akan mencetak pesan usage dan keluar. Jika argumen sesuai, maka fungsi runDaemon akan dipanggil dengan path folder yang diberikan.
+
+** 7. Penjelasan Tambahan **
+Pada bagian runDaemon, program menggunakan `fork()` untuk membuat proses baru, kemudian menjalankan proses tersebut sebagai sebuah daemon menggunakan `setsid()`, mengubah direktori kerja menjadi direktori yang ditentukan, menutup file descriptor standar (stdin, stdout, stderr), dan terus berjalan di dalam loop while untuk melakukan proses pemantauan dan pemrosesan file `contoh.txt`.
+Fungsi `replaceString` digunakan untuk mencari dan mengganti string tertentu dalam buffer. Ini membantu dalam mengganti string yang berkaitan dengan malware dengan string yang lebih jelas terkait dengan jenis malware yang ditemukan.
+Pemanggilan `logReplacement` terjadi setiap kali string dalam file `contoh.txt` berhasil diganti. Ini membantu dalam mencatat aktivitas penggantian string yang dilakukan oleh program ke dalam file log `virus.log`.
 
 #### > Revisi
 
+Tidak ada revisi dari program ini karena program dapat berjalan dengan baik dan sesuai dengan permintaan.
 ---
 
 ### **`Soal 2`**
@@ -753,15 +809,445 @@ int main(int argc, char *argv[])
 `>Andre`
 
 ### > Isi Soal
+Pak Heze adalah seorang admin yang baik. Beliau ingin membuat sebuah program admin yang dapat memantau para pengguna sistemnya. Bantulah Pak Heze untuk membuat program  tersebut!
+
+A. Pak Heze adalah seorang admin yang baik. Beliau ingin membuat sebuah program admin yang dapat memantau para pengguna sistemnya. Bantulah Pak Heze untuk membuat program  tersebut!
+B. Program tersebut memiliki fitur menampilkan seluruh proses yang dilakukan oleh seorang user dengan menggunakan command:
+./admin <user>
+C. Program dapat memantau proses apa saja yang dilakukan oleh user. Fitur ini membuat program berjalan secara daemon dan berjalan terus menerus. Untuk menjalankan fitur ini menggunakan command: 
+./admin -m <user>
+Dan untuk mematikan fitur tersebut menggunakan: 
+./admin -s <user>
+Program akan mencatat seluruh proses yang dijalankan oleh user di file <user>.log dengan format:
+[dd:mm:yyyy]-[hh:mm:ss]_pid-process_nama-process_GAGAL/JALAN
+D. Program dapat menggagalkan proses yang dijalankan user setiap detik secara terus menerus dengan menjalankan: 
+./admin -c user
+sehingga user tidak bisa menjalankan proses yang dia inginkan dengan baik. Fitur ini dapat dimatikan dengan command:
+./admin -a user
+E. Ketika proses yang dijalankan user digagalkan, program juga akan melog dan menset log tersebut sebagai GAGAL. Dan jika di log menggunakan fitur poin c, log akan ditulis dengan JALAN
 
 #### > Penyelesaian
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <dirent.h>
+
+#define MAX_PROCESS 1024
+#define LOG_FILE_PREFIX "kali_andrey.log"
+
+pid_t monitor_process_id = 0;
+pid_t crack_process_id = 0;
+char user[64];
+FILE *fp_log;
+
+void log_process(char *status, pid_t pid, char *process_name) {
+    time_t current_time;
+    char *c_time_string;
+
+    current_time = time(NULL);
+    c_time_string = ctime(&current_time);
+    c_time_string[strlen(c_time_string) - 1] = '\0';
+
+    fprintf(fp_log, "[%s]-[%d]-[%s]-%s\n", c_time_string, pid, process_name, status);
+    fflush(fp_log);
+}
+
+void kill_process(int sig) {
+    DIR *dir;
+    struct dirent *entry;
+    char path[256];
+    pid_t pid;
+    char command[256];
+
+    dir = opendir("/proc");
+    if (dir == NULL) {
+        perror("opendir");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        pid = atoi(entry->d_name);
+        sprintf(path, "/proc/%s/cmdline", entry->d_name);
+        FILE *fp = fopen(path, "r");
+        if (fp) {
+            fgets(command, sizeof(command), fp);
+            log_process("JALAN", pid, command); // Log semua proses
+            fclose(fp);
+        }
+    }
+
+    closedir(dir);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Usage: %s <option> <user>\n", argv[0]);
+        printf("Options:\n");
+        printf("  -m: Monitor user processes\n");
+        printf("  -s: Stop monitoring user processes\n");
+        printf("  -c: Crack user processes\n");
+        printf("  -a: Stop cracking user processes\n");
+        return 1;
+    }
+
+    strcpy(user, argv[2]);
+
+    char log_file[256];
+    sprintf(log_file, "%s", LOG_FILE_PREFIX);
+    fp_log = fopen(log_file, "a");
+    if (fp_log == NULL) {
+        printf("Gagal membuka file log: %s\n", log_file);
+        return 1;
+    }
+
+    if (strcmp(argv[1], "-m") == 0) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            while (1) {
+                DIR *dir;
+                struct dirent *entry;
+                char path[256];
+                pid_t pid;
+                char command[256];
+
+                dir = opendir("/proc");
+                if (dir == NULL) {
+                    perror("opendir");
+                    return 1;
+                }
+
+                while ((entry = readdir(dir)) != NULL) {
+                    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                        continue;
+
+                    pid = atoi(entry->d_name);
+                    sprintf(path, "/proc/%s/cmdline", entry->d_name);
+                    FILE *fp = fopen(path, "r");
+                    if (fp) {
+                        fgets(command, sizeof(command), fp);
+                        if (strstr(command, user) != NULL) {
+                            log_process("JALAN", pid, command);
+                        }
+                        fclose(fp);
+                    }
+                }
+
+                closedir(dir);
+                sleep(1);
+            }
+        } else {
+            monitor_process_id = pid;
+            printf("Monitoring user %s processes\n", user);
+        }
+    } else if (strcmp(argv[1], "-s") == 0) {
+        if (monitor_process_id != 0) {
+            kill(monitor_process_id, SIGTERM);
+            int status;
+            waitpid(monitor_process_id, &status, 0);
+            monitor_process_id = 0;
+            printf("Stopped monitoring user %s processes\n", user);
+        } else {
+            printf("No monitoring process running for user %s\n", user);
+        }
+    } else if (strcmp(argv[1], "-c") == 0) {
+        crack_process_id = fork();
+        if (crack_process_id == 0) {
+            struct sigaction sa;
+            sa.sa_handler = kill_process;
+            sigemptyset(&sa.sa_mask);
+            sa.sa_flags = 0;
+            sigaction(SIGALRM, &sa, NULL);
+
+            while (1) {
+                alarm(1);
+                pause();
+            }
+        } else {
+            printf("Cracking user %s processes\n", user);
+        }
+    } else if (strcmp(argv[1], "-a") == 0) {
+        if (crack_process_id != 0) {
+            kill(crack_process_id, SIGTERM);
+            int status;
+            waitpid(crack_process_id, &status, 0);
+            crack_process_id = 0;
+            printf("Stopped cracking user %s processes\n", user);
+        } else {
+            printf("No cracking process running for user %s\n", user);
+        }
+    } else {
+        printf("Invalid option: %s\n", argv[1]);
+        return 1;
+    }
+
+    fclose(fp_log);
+    return 0;
+}
+```
 
 #### > Penjelasan
+** 1. Header Inclusion **
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <dirent.h>
+```
+Pustaka-pustaka standar yang digunakan untuk berbagai keperluan, seperti operasi I/O, manipulasi string, manajemen proses, manipulasi sinyal, waktu, dan manipulasi direktori.
 
-#### > Dokumentasi
+** 2. Macro Definitions **
+```bash
+#define MAX_PROCESS 1024
+#define LOG_FILE_PREFIX "kali_andrey.log"
+```
+Definisi makro untuk jumlah maksimum proses dan awalan nama file log.
+
+** 3. Global Variables **
+```bash
+pid_t monitor_process_id = 0;
+pid_t crack_process_id = 0;
+char user[64];
+FILE *fp_log;
+```
+Variabel global untuk menyimpan PID dari proses pemantauan dan proses crack, nama pengguna yang akan dimonitor/crack, dan file pointer untuk file log.
+
+** 4. Function log_process **
+```bash
+void log_process(char *status, pid_t pid, char *process_name) {
+    // ...
+}
+```
+Fungsi untuk mencatat informasi proses ke dalam file log. Memasukkan waktu, PID proses, nama proses, dan status proses ke dalam file log.
+
+** 5. Function kill_process **
+```bash
+void kill_process(int sig) {
+    // ...
+}
+```
+Fungsi yang akan dipanggil ketika sinyal SIGALRM diterima. Ini digunakan untuk memeriksa proses apa saja yang sedang berjalan dan mencatat informasi tersebut ke dalam file log.
+
+** 6. Function main **
+```bash
+int main(int argc, char *argv[]) {
+    // ...
+}
+```
+Fungsi utama program. Menangani argumen yang diberikan saat menjalankan program dan melakukan operasi sesuai dengan argumen tersebut.
+
+** 7. Proses Pemantauan **
+>> Program dapat dijalankan dengan opsi -m untuk memonitor proses pengguna tertentu.
+Ini dilakukan dengan membuat proses baru yang akan secara terus-menerus memeriksa proses apa >> saja yang sedang berjalan, dan jika ada proses yang berjalan dengan nama pengguna yang ditentukan, informasi tersebut akan dicatat ke dalam file log.
+
+** 8. Proses Penghentian Pemantauan ** 
+>> Program dapat dijalankan dengan opsi -s untuk menghentikan pemantauan proses pengguna tertentu.
+>> Ini dilakukan dengan mengirim sinyal SIGTERM ke proses pemantauan dan menunggu proses tersebut berhenti.
+
+** 9. Proses Crack **
+>> Program dapat dijalankan dengan opsi -c untuk melakukan "crack" terhadap proses pengguna tertentu.
+>> Ini dilakukan dengan membuat proses baru yang akan secara terus-menerus memeriksa proses apa saja yang sedang berjalan dan mencatat informasi tersebut ke dalam file log.
+
+** 10. Penghentian Proses Crack **
+>> Program dapat dijalankan dengan opsi -a untuk menghentikan proses crack terhadap proses pengguna tertentu.
+>> Ini dilakukan dengan mengirim sinyal SIGTERM ke proses crack dan menunggu proses tersebut berhenti.
+
+** 11. Penjelasan Tambahan **
+>> Program menggunakan direktori /proc untuk memeriksa proses-proses yang sedang berjalan.
+>> File log dibuka pada awal program dan ditutup sebelum program berakhir.
+>> Program memberikan pesan kesalahan jika tidak cukup argumen yang diberikan atau jika gagal membuka file log.
 
 #### > Revisi
+Dikarenakan program yang saya buat sebelumnya tidak dapat menyelesaikan permasalahan pada poin c dan d maka saya membuat program baru seperti ini
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <string.h>
+#include <time.h>
+#include <signal.h>
 
+#define PID_FILE "daemon.pid"
+#define STATUS_FILE "status.txt"
+
+int daemon_pid = -1;
+
+void log_activity(char *user, char *activity, int success) {
+    FILE *fp;
+    char filename[50];
+    time_t current_time;
+    struct tm *local_time;
+    char timestamp[50];
+
+    time(&current_time);
+    local_time = localtime(&current_time);
+    strftime(timestamp, sizeof(timestamp), "%d:%m:%Y-%H:%M:%S", local_time);
+
+    snprintf(filename, sizeof(filename), "%s.log", user);
+    fp = fopen(filename, "a");
+
+    if (fp != NULL) {
+        fprintf(fp, "[%s]-%d-%s_%s\n", timestamp, getpid(), activity, success ? "JALAN" : "GAGAL");
+        fclose(fp);
+    } else {
+        printf("Failed to open log file for user %s.\n", user);
+    }
+}
+
+int read_status() {
+    FILE *status_file = fopen(STATUS_FILE, "r");
+    int blocked = 0;
+    if (status_file != NULL) {
+        fscanf(status_file, "%d", &blocked);
+        fclose(status_file);
+    }
+    return blocked;
+}
+
+void monitor_activity(char *user) {
+    int blocked = read_status();
+    if (blocked) {
+        log_activity(user, "Monitoring activity", 0);
+        printf("Monitoring activity failed for user %s.\n", user);
+        return;
+    }
+
+    pid_t pid;
+    FILE *pid_file;
+
+    pid = fork();
+
+    if (pid == 0) {
+        setsid();
+        while (1) {
+            blocked = read_status();
+            if (blocked) {
+                break;
+            }
+            log_activity(user, "Monitoring activity", 1);
+            sleep(1);
+        }
+        exit(0);
+    } else if (pid > 0) {
+        daemon_pid = pid;
+        pid_file = fopen(PID_FILE, "w");
+        if (pid_file != NULL) {
+            fprintf(pid_file, "%d", daemon_pid);
+            fclose(pid_file);
+        }
+        printf("Monitoring started for user %s.\n", user);
+    } else {
+        printf("Fork failed.\n");
+    }
+}
+
+void stop_monitoring(char *user) {
+    int blocked = read_status();
+    if (blocked) {
+        log_activity(user, "Stopping monitoring", 0);
+        printf("Stopping monitoring failed for user %s.\n", user);
+        return;
+    }
+
+    FILE *pid_file;
+    int pid;
+
+    pid_file = fopen(PID_FILE, "r");
+    if (pid_file != NULL) {
+        fscanf(pid_file, "%d", &pid);
+        fclose(pid_file);
+        if (pid > 0) {
+            kill(pid, SIGTERM);
+            remove(PID_FILE);
+            daemon_pid = -1;
+            log_activity(user, "Stopping monitoring", 1);
+            printf("Monitoring stopped for user %s.\n", user);
+        } else {
+            printf("No running monitoring process found for user %s.\n", user);
+        }
+    } else {
+        printf("No running monitoring process found for user %s.\n", user);
+    }
+}
+
+void block_activity(char *user) {
+    FILE *status_file = fopen(STATUS_FILE, "w");
+    if (status_file != NULL) {
+        fprintf(status_file, "1");
+        fclose(status_file);
+        log_activity(user, "Blocking activity", 1);
+        printf("Activity blocked for user %s.\n", user);
+    } else {
+        printf("Failed to open status file.\n");
+    }
+}
+
+void allow_activity(char *user) {
+    FILE *status_file = fopen(STATUS_FILE, "w");
+    if (status_file != NULL) {
+        fprintf(status_file, "0");
+        fclose(status_file);
+        log_activity(user, "Allowing activity", 1);
+        printf("Activity allowed for user %s.\n", user);
+    } else {
+        printf("Failed to open status file.\n");
+    }
+}
+
+void sigterm_handler(int signum) {
+    printf("Received SIGTERM signal. Exiting.\n");
+    exit(signum);
+}
+
+int main(int argc, char *argv[]) {
+    signal(SIGTERM, sigterm_handler);
+
+    if (argc < 3) {
+        printf("-m membuat program berjalan secara daemon dan berjalan terus menerus\n-s mematikan program yang berjalan secara daemon dan berjalan terus menerus\n-c menggagalkan proses yang dijalankan user setiap detik secara terus menerus\n-a mengembalikan akses untuk menjalankan user setiap detik secara terus menerus\n", argv[0]);
+        return 1;
+    }
+
+    char *option = argv[1];
+    char *user = argv[2];
+
+    if (strcmp(option, "-m") == 0) {
+        monitor_activity(user);
+    } else if (strcmp(option, "-s") == 0) {
+        stop_monitoring(user);
+    } else if (strcmp(option, "-c") == 0) {
+        block_activity(user);
+    } else if (strcmp(option, "-a") == 0) {
+        allow_activity(user);
+    } else {
+        printf("Invalid option.\n");
+        return 1;
+    }
+
+    return 0;
+}
+```
+1. program baru menggunakan setsid untuk membuat proses menjadi sesi pemimpin, menghindari proses terkait dengan terminal.
+
+2. Penggunaan fscanf: Program baru menggunakan fscanf untuk membaca status pemblokiran dari file status.txt, memastikan pembacaan yang lebih aman dan terkontrol.
+
+3. Penggunaan snprintf: Program baru menggunakan snprintf untuk menghindari buffer overflow dalam pembuatan nama file log.
+
+4. Penanganan Sinyal SIGTERM: Program baru menambahkan penanganan sinyal SIGTERM dengan fungsi sigterm_handler. Ini memungkinkan program untuk melakukan proses pembersihan atau penanganan tertentu saat menerima sinyal SIGTERM, yang memungkinkan program untuk berhenti dengan benar ketika diminta.
 ---
 
 ### **`Soal 4`**
