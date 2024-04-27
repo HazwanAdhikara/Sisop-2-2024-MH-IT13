@@ -48,7 +48,150 @@ Struktur Repository Seperti Berikut:
 
 ### > Isi Soal
 
+Gavriel adalah seorang cyber security enthusiast. Suatu hari, ia dikontrak oleh sebuah perusahaan ternama untuk membuat sebuah program yang cukup rumit dengan bayaran jutaan rupiah. Karena tergoda dengan nominal bayaran tersebut, Gavriel langsung menerima tawaran tersebut. Setelah mencoba membuat dan mengembangkan program tersebut selama seminggu, laptop yang digunakan Gavriel mengalami overheat dan mati total sehingga harus dilarikan ke tukang servis terdekat. Karena keterbatasan waktu dalam pembuatan program dan tidak ingin mengecewakan perusahaan, Gavriel meminta bantuan kalian untuk membuat program tersebut dengan ketentuan sebagai berikut:
+
+A. Program dapat menerima input path berupa ‘argv’ untuk mengatur folder dimana file akan dieksekusi
+
+B. Program tersebut berfungsi untuk mereplace string dengan ketentuan sebagai berikut:
+I. String m4LwAr3 direplace dengan string [MALWARE]
+II. String 5pYw4R3 direplace dengan string [SPYWARE]
+III. String R4nS0mWaR3 direplace dengan string [RANSOMWARE]
+
+C. Program harus berjalan secara daemon, dan tidak diperbolehkan menggunakan command system() dalam pembuatan program
+
+D. Program akan secara terus menerus berjalan di background dengan jeda 15 detik
+Catat setiap penghapusan string yang dilakukan oleh program pada sebuah file 
+
+E. Catat setiap penghapusan string yang dilakukan oleh program pada sebuah file bernama virus.log dengan format: [dd-mm-YYYY][HH:MM:SS] Suspicious string at <file_name> successfully replaced!
+
+Contoh penggunaan: ./virus /home/user/virus
+
+Contoh isi file sebelum program dijalankan:
+pU=-JWQ$5$)D-[??%AVh]$cB6bm4LwAr3jEQC2p3R{HV]=-AUaxj:Qe+h
+!aNX,i:!z3W=2;.tHc3&S+}6F)CFf%tfZLP1*w5m1PAzZJUux(
+Pd&f8$F5=E?@#[6jd{TJKj]5pYw4R3{KK1?hz384$ge@iba5GAj$gqB41
+#C&&a}M9C#f64Eb.?%c)dGbCvJXtU[?SE4h]BY4e1PR4nS0mWaR3{]S/{w?*
+
+Contoh isi file setelah setelah program dijalankan:
+pU=-JWQ$5$)D-[??%AVh]$cB6b[MALWARE]jEQC2p3R{HV]=-AUaxj:Qe+h
+!aNX,i:!z3W=2;.tHc3&S+}6F)CFf%tfZLP1*w5m1PAzZJUux(
+Pd&f8$F5=E?@#[6jd{TJKj][SPYWARE]{KK1?hz384$ge@iba5GAj$gqB41
+#C&&a}M9C#f64Eb.?%c)dGbCvJXtU[?SE4h]BY4e1P[RANSOMWARE]{]S/{w?*
+
 #### > Penyelesaian
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <time.h>
+
+#define MAX_PATH_LENGTH 256
+#define MAX_BUFFER_SIZE 1024
+
+void replaceString(char *str, const char *old, const char *new) {
+    char *pos, temp[MAX_BUFFER_SIZE];
+    int index = 0;
+    int oldLen = strlen(old);
+    int newLen = strlen(new);
+
+    while ((pos = strstr(str, old)) != NULL) {
+        strcpy(temp, str);
+        index = pos - str;
+        str[index] = '\0';
+        strcat(str, new);
+        strcat(str, temp + index + oldLen);
+    }
+}
+
+void logReplacement(const char *filePath) {
+    FILE *logFile;
+    time_t now;
+    struct tm *timestamp;
+    char logEntry[MAX_BUFFER_SIZE];
+
+    time(&now);
+    timestamp = localtime(&now);
+
+    sprintf(logEntry, "[%02d-%02d-%04d][%02d:%02d:%02d] Suspicious string at %s successfully replaced!\n",
+            timestamp->tm_mday, timestamp->tm_mon + 1, timestamp->tm_year + 1900,
+            timestamp->tm_hour, timestamp->tm_min, timestamp->tm_sec, filePath);
+
+    logFile = fopen("virus.log", "a");
+    if (logFile != NULL) {
+        fputs(logEntry, logFile);
+        fclose(logFile);
+    }
+}
+
+void runDaemon(const char *folderPath) {
+    pid_t pid, sid;
+
+    pid = fork();
+
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    umask(0);
+
+    sid = setsid();
+    if (sid < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    if ((chdir(folderPath)) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
+    while (1) {
+        FILE *file;
+        char filePath[MAX_PATH_LENGTH];
+        char buffer[MAX_BUFFER_SIZE];
+
+        // Menggunakan sprintf untuk menggabungkan path folder dan nama file contoh.txt
+        sprintf(filePath, "%s/contoh.txt", folderPath);
+
+        file = fopen(filePath, "r+");
+        if (file != NULL) {
+            while (fgets(buffer, MAX_BUFFER_SIZE, file) != NULL) {
+                replaceString(buffer, "m4LwAr3", "[MALWARE]");
+                replaceString(buffer, "5pYw4R3", "[SPYWARE]");
+                replaceString(buffer, "R4nS0mWaR3", "[RANSOMWARE]");
+                fseek(file, -strlen(buffer), SEEK_CUR);
+                fputs(buffer, file);
+            }
+            fclose(file);
+            logReplacement(filePath);
+        }
+
+        sleep(15); // Jeda selama 15 detik
+    }
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <folder_path>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    runDaemon(argv[1]);
+
+    return 0;
+}
+
+```
 
 #### > Penjelasan
 
