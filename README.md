@@ -549,7 +549,57 @@ int main(int argc, char *argv[])
 
 #### > Penjelasan
 
+1. **Fungsi `handle_default(int sig)`**:
+    - Fungsi ini menangani sinyal default (SIGRTMIN+4) dan mengubah mode menjadi 0 (default mode).
+    - Sinyal ini digunakan untuk mengaktifkan operasi default pada daemon.
+
+2. **Fungsi `handle_backup(int sig)`**:
+    - Fungsi ini menangani sinyal SIGUSR1 dan mengubah mode menjadi 1 (backup mode).
+    - Sinyal ini digunakan untuk memindahkan file ke direktori backup.
+
+3. **Fungsi `handle_restore(int sig)`**:
+    - Fungsi ini menangani sinyal SIGUSR2 dan mengubah mode menjadi 2 (restore mode).
+    - Sinyal ini digunakan untuk mengembalikan file dari direktori backup ke direktori library.
+
+4. **Fungsi `handle_kill(int sig)`**:
+    - Fungsi ini menangani sinyal SIGTERM dan mengakhiri proses daemon.
+
+5. **Fungsi `download_file()`**:
+    - Fungsi ini melakukan download file dari URL yang telah ditentukan menggunakan perintah `wget`.
+
+6. **Fungsi `unzip_file()`**:
+    - Fungsi ini melakukan ekstraksi file ZIP yang telah diunduh ke direktori library menggunakan perintah `unzip`.
+
+7. **Fungsi `rot19(char *filename)`**:
+    - Fungsi ini mengenkripsi nama file dengan algoritma ROT19 (geser karakter sebanyak 7 posisi).
+
+8. **Fungsi `decrypt_names()`**:
+    - Fungsi ini mengenkripsi ulang nama file dalam direktori library menggunakan algoritma ROT19.
+
+9. **Fungsi `delete_files()`**:
+    - Fungsi ini menghapus file yang memiliki substring "d3Let3" dalam nama file.
+
+10. **Fungsi `rename_files()`**:
+    - Fungsi ini mengganti nama file sesuai dengan ekstensi file yang telah ditentukan.
+
+11. **Fungsi `move_to_backup()`**:
+    - Fungsi ini memindahkan file yang memiliki substring "m0V3" dalam nama file ke direktori backup.
+
+12. **Fungsi `restore_from_backup()`**:
+    - Fungsi ini mengembalikan file dari direktori backup ke direktori library.
+
+13. **Fungsi `main(int argc, char *argv[])`**:
+    - Fungsi utama yang mengatur mode kerja daemon.
+    - Jika argumen `-m backup` diberikan, mode akan diubah menjadi backup mode.
+    - Jika argumen `-m restore` diberikan, mode akan diubah menjadi restore mode.
+    - Jika tidak ada argumen, daemon akan berjalan dalam mode default.
+    - Daemon akan berjalan dalam loop dan melakukan operasi sesuai dengan mode yang aktif.
+
 #### > Dokumentasi
+<img width="1710" alt="image" src="https://github.com/HazwanAdhikara/Sisop-2-2024-MH-IT13/assets/151142830/06afd83e-db6e-44aa-9b31-d912471626ef">
+<img width="1710" alt="image" src="https://github.com/HazwanAdhikara/Sisop-2-2024-MH-IT13/assets/151142830/f10a5084-bdcb-48ec-80c6-3f4457ddafc9">
+<img width="1710" alt="image" src="https://github.com/HazwanAdhikara/Sisop-2-2024-MH-IT13/assets/151142830/96518379-b7eb-4077-94aa-ec4122ce4278">
+<img width="1710" alt="image" src="https://github.com/HazwanAdhikara/Sisop-2-2024-MH-IT13/assets/151142830/328cb7e8-a5af-40f9-af49-086fd50d61bf">
 
 #### > Revisi
 
